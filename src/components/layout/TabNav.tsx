@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useSearchParams, usePathname } from 'next/navigation'
 
 const TABS = [
+  { id: 'tasks', label: 'TASKS' },
   { id: 'log', label: 'LOG' },
   { id: 'feed', label: 'FEED' },
   { id: 'leaderboard', label: 'STATS' },
@@ -12,9 +13,9 @@ const TABS = [
 export default function TabNav() {
   const searchParams = useSearchParams()
   const pathname = usePathname()
-  
-  // Default to first tab if none is specified
-  const activeTab = searchParams.get('tab') || 'log'
+
+  // Default to tasks tab if none is specified
+  const activeTab = searchParams.get('tab') || 'tasks'
 
   const createQueryString = (name: string, value: string) => {
     const params = new URLSearchParams(searchParams.toString())

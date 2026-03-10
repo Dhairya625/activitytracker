@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import LogActivityForm from '@/components/forms/LogActivityForm'
 import ActivityFeed from '@/components/feed/ActivityFeed'
 import LeaderboardAnalytics from '@/components/charts/LeaderboardAnalytics'
+import TaskBoard from '@/components/tasks/TaskBoard'
 
 export default async function DashboardPage({
   searchParams,
@@ -29,10 +30,11 @@ export default async function DashboardPage({
   const isLeader = profile?.role === 'leader'
 
   const resolvedSearchParams = await searchParams
-  const tab = resolvedSearchParams.tab || 'log'
+  const tab = resolvedSearchParams.tab || 'tasks'
 
   return (
     <div className="min-h-[400px]">
+      {tab === 'tasks' && <TaskBoard currentUserId={user.id} />}
       {tab === 'log' && <LogActivityForm isLeader={isLeader} currentUserId={user.id} />}
       {tab === 'feed' && <ActivityFeed />}
       {tab === 'leaderboard' && <LeaderboardAnalytics isLeader={isLeader} />}
