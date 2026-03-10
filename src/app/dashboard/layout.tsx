@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { getCachedUser } from '@/lib/cached-user'
 import Navbar from '@/components/layout/Navbar'
 import TabNav from '@/components/layout/TabNav'
 
@@ -8,23 +8,11 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
+  const { user, profile, authError } = await getCachedUser()
 
   if (authError || !user) {
     redirect('/login')
   }
-
-  // Fetch the user's profile to get their name
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('full_name')
-    .eq('id', user.id)
-    .single()
 
   const userName = profile?.full_name || user.email?.split('@')[0] || 'User'
 

@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { getCachedUser } from '@/lib/cached-user'
 import LogActivityForm from '@/components/forms/LogActivityForm'
 import ActivityFeed from '@/components/feed/ActivityFeed'
 import LeaderboardAnalytics from '@/components/charts/LeaderboardAnalytics'
@@ -10,22 +10,11 @@ export default async function DashboardPage({
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { user, profile } = await getCachedUser()
 
   if (!user) {
     redirect('/login')
   }
-
-  // Get user profile for roles
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
 
   const isLeader = profile?.role === 'leader'
 

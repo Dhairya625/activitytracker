@@ -36,8 +36,8 @@ export default function CompleteTaskDialog({
 
         const formData = new FormData(e.currentTarget)
 
-        // 1. Log the activity corresponding to the task
-        const logResult = await logActivity(formData)
+        // 1. Log the activity corresponding to the task (skip revalidation here to prevent double re-rendering)
+        const logResult = await logActivity(formData, true)
 
         if (logResult.error) {
             setError(logResult.error)
@@ -74,7 +74,13 @@ export default function CompleteTaskDialog({
                     <input type="hidden" name="taskName" value={task.title} />
                     <input type="hidden" name="description" value={`Completed task: ${task.title}`} />
                     {/* Default the user to whoever completed the task, since there can be multiple assignees now */}
-                    <input type="hidden" name="userId" value={currentUserId} />
+                    {task.task_assignees && task.task_assignees.length > 0 ? (
+                        task.task_assignees.map(assignee => (
+                            <input key={assignee.user_id} type="hidden" name="userIds" value={assignee.user_id} />
+                        ))
+                    ) : (
+                        <input type="hidden" name="userId" value={currentUserId} />
+                    )}
 
                     <div className="space-y-1">
                         <label className="text-[12px] font-bold text-muted uppercase tracking-[0.05em]">Category</label>
