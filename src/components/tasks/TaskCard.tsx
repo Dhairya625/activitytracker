@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { TaskInfo } from '@/types/tasks'
 import { CheckCircle, Circle, GripVertical } from 'lucide-react'
 
@@ -14,6 +15,12 @@ export default function TaskCard({
     isCompleted?: boolean,
     onComplete?: () => void
 }) {
+    // Format date only on client to avoid hydration mismatch (locale/timezone can differ server vs client)
+    const [formattedDate, setFormattedDate] = useState<string | null>(null)
+    useEffect(() => {
+        setFormattedDate(new Date(task.created_at).toLocaleDateString())
+    }, [task.created_at])
+
     return (
         <div
             draggable={!isCompleted}
@@ -63,7 +70,7 @@ export default function TaskCard({
                             : 'Unassigned'}
                     </span>
                     <span className="text-[10px] text-muted/50">
-                        {new Date(task.created_at).toLocaleDateString()}
+                        {formattedDate ?? '—'}
                     </span>
                 </div>
             </div>

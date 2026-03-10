@@ -1,7 +1,23 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
+/** True if the request has any Supabase auth cookie (avoids getUser() when clearly unauthenticated). */
+function hasSupabaseAuthCookie(request: NextRequest): boolean {
+  const cookies = request.cookies.getAll()
+  return cookies.some((c) => c.name.includes("sb-") && c.name.includes("auth"))
+}
+
 export async function updateSession(request: NextRequest) {
+  const isAuthRoute = request.nextUrl.pathname.startsWith("/login")
+  const isProtectedRoute = request.nextUrl.pathname.startsWith("/dashboard")
+
+  // Fast path: protected route but no auth cookie → redirect without calling Supabase
+  if (isProtectedRoute && !hasSupabaseAuthCookie(request)) {
+    const url = request.nextUrl.clone()
+    url.pathname = "/login"
+    return NextResponse.redirect(url)
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   })
@@ -15,7 +31,7 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           supabaseResponse = NextResponse.next({
             request,
           })
@@ -27,31 +43,21 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  // IMPORTANT: Avoid writing any logic between createServerClient and
-  // supabase.auth.getUser(). A simple mistake could make it very hard to debug
-  // issues with users being randomly logged out.
-  
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const isAuthRoute = request.nextUrl.pathname.startsWith('/login')
-  const isProtectedRoute = request.nextUrl.pathname.startsWith('/dashboard')
-
-  // Redirect to login if accessing a protected route without a session
   if (!user && isProtectedRoute) {
     const url = request.nextUrl.clone()
-    url.pathname = '/login'
+    url.pathname = "/login"
     return NextResponse.redirect(url)
   }
 
-  // Redirect to dashboard if accessing login with an active session
   if (user && isAuthRoute) {
     const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
+    url.pathname = "/dashboard"
     return NextResponse.redirect(url)
   }
 
-  // IMPORTANT: You *must* return the supabaseResponse object as it is.
   return supabaseResponse
 }

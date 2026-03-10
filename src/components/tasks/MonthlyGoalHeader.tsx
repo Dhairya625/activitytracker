@@ -4,16 +4,36 @@ import { useState, useEffect } from 'react'
 import { fetchMonthlyGoal, updateMonthlyGoal } from '@/app/dashboard/task-actions'
 import { Target, Edit2 } from 'lucide-react'
 
-export default function MonthlyGoalHeader() {
-    const [goalText, setGoalText] = useState('Loading...')
+type MonthlyGoalHeaderProps = {
+    initialGoal?: { goal_text: string } | null
+    /** Pass from server to avoid hydration mismatch (server/client date can differ) */
+    currentMonthYear?: string
+}
+
+export default function MonthlyGoalHeader({ initialGoal = null, currentMonthYear: currentMonthYearProp }: MonthlyGoalHeaderProps) {
+    const [goalText, setGoalText] = useState(() => {
+        if (initialGoal?.goal_text != null) return initialGoal.goal_text
+        return 'Loading...'
+    })
     const [isEditing, setIsEditing] = useState(false)
-    const [editValue, setEditValue] = useState('')
+    const [editValue, setEditValue] = useState(() => initialGoal?.goal_text ?? '')
     const [isSaving, setIsSaving] = useState(false)
 
-    // Get current month-year (e.g. "March 2026")
-    const currentMonthYear = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(new Date())
+    // Use server-passed value when available to avoid hydration mismatch; otherwise compute on client only
+    const [clientMonthYear, setClientMonthYear] = useState<string | null>(null)
+    const currentMonthYear = currentMonthYearProp ?? clientMonthYear ?? ''
+    useEffect(() => {
+        if (currentMonthYearProp) return
+        setClientMonthYear(new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(new Date()))
+    }, [currentMonthYearProp])
 
     useEffect(() => {
+        if (initialGoal != null) {
+            setGoalText(initialGoal.goal_text)
+            setEditValue(initialGoal.goal_text)
+            return
+        }
+        if (!currentMonthYear) return
         async function loadGoal() {
             const goal = await fetchMonthlyGoal(currentMonthYear)
             if (goal) {
@@ -25,7 +45,7 @@ export default function MonthlyGoalHeader() {
             }
         }
         loadGoal()
-    }, [currentMonthYear])
+    }, [currentMonthYear, initialGoal])
 
     async function handleSave() {
         setIsSaving(true)
@@ -47,7 +67,7 @@ export default function MonthlyGoalHeader() {
                 </div>
                 <div>
                     <h2 className="text-[12px] font-bold text-muted uppercase tracking-[0.1em] mb-1">
-                        Month Goal · {currentMonthYear}
+                        {currentMonthYear ? `Month Goal · ${currentMonthYear}` : 'Month Goal'}
                     </h2>
                     {!isEditing ? (
                         <div className="text-[18px] md:text-[20px] font-medium text-text-bright">

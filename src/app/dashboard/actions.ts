@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, unstable_cache } from 'next/cache'
 
 export async function logActivity(formData: FormData, skipRevalidate = false) {
   const supabase = await createClient()
@@ -79,9 +79,12 @@ export async function logActivity(formData: FormData, skipRevalidate = false) {
   return { success: true }
 }
 
-export async function getTeamMembers() {
-  const supabase = await createClient()
-  const { data, error } = await supabase
+async function fetchTeamMembersImpl() {
+  const adminClient = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+  const { data, error } = await adminClient
     .from('profiles')
     .select('id, full_name')
     .order('full_name')
@@ -91,4 +94,11 @@ export async function getTeamMembers() {
     return []
   }
   return data
+}
+
+export async function getTeamMembers() {
+  return unstable_cache(fetchTeamMembersImpl, ['team-members'], {
+    revalidate: 60,
+    tags: ['team-members'],
+  })()
 }

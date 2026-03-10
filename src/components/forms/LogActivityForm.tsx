@@ -13,18 +13,29 @@ const CATEGORIES = [
   'Other'
 ]
 
-export default function LogActivityForm({ isLeader, currentUserId }: { isLeader: boolean, currentUserId: string }) {
+type TeamMember = { id: string; full_name: string }
+
+type LogActivityFormProps = {
+  isLeader: boolean
+  currentUserId: string
+  teamMembers?: TeamMember[] | null
+}
+
+export default function LogActivityForm({ isLeader, currentUserId, teamMembers: teamMembersProp }: LogActivityFormProps) {
   const [isPending, startTransition] = useTransition()
   const [success, setSuccess] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
-  const [teamMembers, setTeamMembers] = useState<{id: string, full_name: string}[]>([])
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(teamMembersProp ?? [])
   const [logForTeammate, setLogForTeammate] = useState(false)
 
   useEffect(() => {
-    if (isLeader) {
-      getTeamMembers().then(members => setTeamMembers(members))
+    if (!isLeader) return
+    if (teamMembersProp != null) {
+      setTeamMembers(teamMembersProp)
+      return
     }
-  }, [isLeader])
+    getTeamMembers().then(members => setTeamMembers(members ?? []))
+  }, [isLeader, teamMembersProp])
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()

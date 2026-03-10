@@ -13,9 +13,25 @@ import TaskCard from './TaskCard'
 import CompleteTaskDialog from './CompleteTaskDialog'
 import { Plus, Trash2 } from 'lucide-react'
 
-export default function TaskBoard({ currentUserId }: { currentUserId: string }) {
-    const [tasks, setTasks] = useState<TaskInfo[]>([])
-    const [teamMembers, setTeamMembers] = useState<{ id: string, full_name: string }[]>([])
+type TeamMember = { id: string; full_name: string }
+
+type TaskBoardProps = {
+    currentUserId: string
+    teamMembers?: TeamMember[] | null
+    initialTasks?: TaskInfo[] | null
+    initialMonthlyGoal?: { goal_text: string } | null
+    currentMonthYear?: string
+}
+
+export default function TaskBoard({
+    currentUserId,
+    teamMembers: teamMembersProp = null,
+    initialTasks = null,
+    initialMonthlyGoal = null,
+    currentMonthYear: currentMonthYearProp = undefined,
+}: TaskBoardProps) {
+    const [tasks, setTasks] = useState<TaskInfo[]>(initialTasks ?? [])
+    const [teamMembers, setTeamMembers] = useState<TeamMember[]>(teamMembersProp ?? [])
     const [isAddingTask, setIsAddingTask] = useState(false)
     const [isDragOverBin, setIsDragOverBin] = useState(false)
     const [isDragOverCompleted, setIsDragOverCompleted] = useState(false)
@@ -23,18 +39,30 @@ export default function TaskBoard({ currentUserId }: { currentUserId: string }) 
     // Dialog state
     const [taskToComplete, setTaskToComplete] = useState<TaskInfo | null>(null)
 
+    // Sync when server-passed props change (e.g. after navigation)
     useEffect(() => {
-        async function loadData() {
-            const [fetchedTasks, members] = await Promise.all([
-                fetchTasks(),
-                getTeamMembers()
-            ])
+        if (initialTasks != null) setTasks(initialTasks)
+    }, [initialTasks])
+    useEffect(() => {
+        if (teamMembersProp != null) setTeamMembers(teamMembersProp)
+    }, [teamMembersProp])
 
-            setTasks(fetchedTasks || [])
-            setTeamMembers(members || [])
+    // Fetch only when not provided by server
+    useEffect(() => {
+        if (teamMembersProp != null && initialTasks != null) return
+        async function loadData() {
+            const needsTasks = initialTasks == null
+            const needsMembers = teamMembersProp == null
+            if (!needsTasks && !needsMembers) return
+            const [fetchedTasks, members] = await Promise.all([
+                needsTasks ? fetchTasks() : Promise.resolve(null),
+                needsMembers ? getTeamMembers() : Promise.resolve(null),
+            ])
+            if (needsTasks && fetchedTasks != null) setTasks(fetchedTasks)
+            if (needsMembers && members != null) setTeamMembers(members)
         }
         loadData()
-    }, [])
+    }, [initialTasks, teamMembersProp])
 
     const pendingTasks = tasks.filter(t => t.status === 'pending')
     const completedTasks = tasks.filter(t => t.status === 'completed')
@@ -110,7 +138,7 @@ export default function TaskBoard({ currentUserId }: { currentUserId: string }) 
 
     return (
         <div className="flex flex-col gap-8 w-full">
-            <MonthlyGoalHeader />
+            <MonthlyGoalHeader initialGoal={initialMonthlyGoal} currentMonthYear={currentMonthYearProp} />
 
             {/* Task Board Columns */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:grid-cols-[1fr_1fr_200px]">

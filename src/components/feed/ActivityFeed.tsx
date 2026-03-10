@@ -11,25 +11,35 @@ const DATE_RANGES = ['All Time', 'This Week', 'This Month']
 
 const PAGE_SIZE = 20
 
-export default function ActivityFeed() {
+type TeamMember = { id: string; full_name: string }
+
+type ActivityFeedProps = {
+  teamMembers?: TeamMember[] | null
+}
+
+export default function ActivityFeed({ teamMembers: teamMembersProp }: ActivityFeedProps) {
   const [activities, setActivities] = useState<Activity[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(true)
   const [page, setPage] = useState(0)
 
-  // Filters
-  const [teamMembers, setTeamMembers] = useState<{id: string, full_name: string}[]>([])
+  // Filters: use server-passed team members when provided
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(teamMembersProp ?? [])
   const [selectedMember, setSelectedMember] = useState('All')
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [selectedDateRange, setSelectedDateRange] = useState('All Time')
 
   const supabase = createClient()
 
-  // Load Team Members for Filter
+  // Load Team Members for Filter only when not provided by server
   useEffect(() => {
-    getTeamMembers().then(members => setTeamMembers(members))
-  }, [])
+    if (teamMembersProp != null) {
+      setTeamMembers(teamMembersProp)
+      return
+    }
+    getTeamMembers().then(members => setTeamMembers(members ?? []))
+  }, [teamMembersProp])
 
   const fetchActivities = useCallback(async (isLoadMore = false) => {
     try {

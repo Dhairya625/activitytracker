@@ -1,28 +1,20 @@
 'use client'
 
-import Link from 'next/link'
-import { useSearchParams, usePathname } from 'next/navigation'
-
 const TABS = [
   { id: 'tasks', label: 'TASKS' },
   { id: 'log', label: 'LOG' },
   { id: 'feed', label: 'FEED' },
   { id: 'leaderboard', label: 'STATS' },
-]
+] as const
 
-export default function TabNav() {
-  const searchParams = useSearchParams()
-  const pathname = usePathname()
+export type TabId = (typeof TABS)[number]['id']
 
-  // Default to tasks tab if none is specified
-  const activeTab = searchParams.get('tab') || 'tasks'
+type TabNavProps = {
+  activeTab: string
+  onTabChange: (tabId: TabId) => void
+}
 
-  const createQueryString = (name: string, value: string) => {
-    const params = new URLSearchParams(searchParams.toString())
-    params.set(name, value)
-    return params.toString()
-  }
-
+export default function TabNav({ activeTab, onTabChange }: TabNavProps) {
   return (
     <div className="border-b border-border w-full">
       <div className="max-w-[960px] mx-auto px-5 md:px-[40px]">
@@ -30,11 +22,12 @@ export default function TabNav() {
           {TABS.map((tab) => {
             const isActive = activeTab === tab.id
             return (
-              <Link
+              <button
                 key={tab.id}
-                href={pathname + '?' + createQueryString('tab', tab.id)}
+                type="button"
+                onClick={() => onTabChange(tab.id)}
                 className={`
-                  text-[11px] font-semibold uppercase tracking-[0.1em] pb-[10px] border-b-[2px] -mb-[1px] transition-colors
+                  text-[11px] font-semibold uppercase tracking-[0.1em] pb-[10px] border-b-[2px] -mb-[1px] transition-colors bg-transparent border-transparent cursor-pointer
                   ${isActive
                     ? 'border-accent text-text-bright'
                     : 'border-transparent text-muted hover:text-text-primary'
@@ -42,7 +35,7 @@ export default function TabNav() {
                 `}
               >
                 {tab.label}
-              </Link>
+              </button>
             )
           })}
         </nav>
